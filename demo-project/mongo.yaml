@@ -1,0 +1,54 @@
+# Create deployment and service for mongodb
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels:
+    # labels attributes (Are key-value pairs that attached to k8s resources)
+    app: mongo
+spec:
+  replicas: 1
+  selector:
+    # which pods belong to deployment?
+    matchLabels:
+      # All the pods match with this label, belong to this deployment
+      app: mongo
+  template:
+    # Config for Pod (Has its own metadata and spec)
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:5.0
+        ports:
+        # mongodb starts at 27017 port
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          # Reference from secret.yaml (User valueFrom attribute)
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+
+#  Use --- to distinguish between configs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+spec:
+  selector:
+    app: MyApp
+  ports:
+    - protocol: TCP
+      port: 27017
+      # targetport should always be the same as container port
+      targetPort: 27017

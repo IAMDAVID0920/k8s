@@ -1,0 +1,68 @@
+# Create deployment and service for mongodb
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    # labels attributes (Are key-value pairs that attached to k8s resources)
+    app: webapp
+spec:
+  replicas: 1
+  selector:
+    # which pods belong to deployment?
+    matchLabels:
+      # All the pods match with this label, belong to this deployment
+      app: webapp
+  template:
+    # Config for Pod (Has its own metadata and spec)
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+        # how do we pass env variable to mongo application? -> env attribute
+      - name: webapp
+        # simple nodejs project
+        # need info to access Database/authenticate database
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        # mongodb starts at 3000 port
+        - containerPort: 3000
+        env:
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL
+          # How do we access value from configmap?
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+
+#  Use --- to distinguish between configs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  # make it external service
+  type: NodePort
+  selector:
+    app: MyApp
+  ports:
+    - protocol: TCP
+      port: 3000
+      # targetport should always be the same as container port
+      targetPort: 3000
+      # this port will open on k8s node, 
+      # expose service on each node's ip at a static port
+      # range (30000-32767)
+      nodePort: 30100
